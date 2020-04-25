@@ -1,15 +1,17 @@
 import time
+import re
 from abc import ABC
 import threading
 import datetime
-
 from twisted.words.protocols import irc
 from twisted.internet import protocol, reactor, ssl
 from config import Config
+from deepl import DeepL, DeepLError
 
 
 class IRCBot(irc.IRCClient, ABC):
-    MSG_PREFIX = "![Bot]! "
+    MSG_PREFIX = "![Translation Bot]! "
+    EN_PATTERN = re.compile("[a-zA-Z0-9_\\.!?]+")
 
     def __init__(self):
         super().__init__()
@@ -76,8 +78,22 @@ class IRCBot(irc.IRCClient, ABC):
         username = prefix.split("!", 1)[0]
         msg = args[1]
         self.log("{}: {}".format(username, msg))
-        # echo back
-        self.write(msg)
+        threading.Thread(target=self.translate, args=(username, msg,)).start()
+
+    def translate(self, username, msg):
+        if username == self.username or username in self.ignore_users:
+            return
+        matches = self.EN_PATTERN.findall(msg)
+        if len(matches) < 1:
+            return
+        text = " ".join(matches)
+        try:
+            deepl = DeepL()
+            translated = deepl.translate(text)
+            msg = translated.result
+            reactor.callFromThread(self.write, msg)
+        except DeepLError as e:
+            reactor.callFromThread(self.syslog, e.reason)
 
     def write(self, msg):
         """Send message to channel and log it"""

@@ -71,6 +71,6 @@ class RingBuffer:
         except IndexError:
             self.lock.release()
             raise StopIteration
-        except BaseException as e:
+        except Exception as e:
             self.lock.release()
             raise e

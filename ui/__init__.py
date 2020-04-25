@@ -47,14 +47,14 @@ class Application(Frame):
         super().__init__(master=root)
         root.title("Twitch DeepL Bot")
         root.geometry("480x600")
-        root.protocol("WM_DELETE_WINDOW", self.close_window)
+        root.protocol("WM_DELETE_WINDOW", self.shutdown)
         self.master = root
         self.log_list = LogList(self)
         self.queue = Queue()
         self.pack(expand=True, fill=BOTH)
         self.bot_manager = IRCBotManager()
 
-    def close_window(self):
+    def shutdown(self):
         self.bot_manager.stop()
         self.master.destroy()
 
@@ -77,8 +77,8 @@ class Application(Frame):
 
     def start(self):
         self.start_irc_bot()
-        self.after(self.UPDATE_LOG_INTERVAL, self.schedule_update_log())
+        self.after(self.UPDATE_LOG_INTERVAL, self.schedule_update_log)
         try:
             self.mainloop()
         except KeyboardInterrupt:
-            self.close_window()
+            self.shutdown()
